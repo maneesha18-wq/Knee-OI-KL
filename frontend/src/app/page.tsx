@@ -11,7 +11,7 @@ import {
   EyeOff,
   AlertCircle,
   ArrowRight,
-  ShieldAlert,
+  ShieldCheck,
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -115,23 +115,26 @@ export default function InitialAuthPage() {
             </p>
           </div>
 
-          {/* Development Notice if Supabase is unconfigured */}
+          {/* Development Notice / Quick Access */}
           {!isConfigured && (
-            <div className="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-amber-950">Supabase Setup Required</p>
-                <p className="mt-1 text-amber-800 leading-relaxed">
-                  Real authentication connects to Supabase. Define{" "}
-                  <code className="font-mono text-amber-950 font-bold bg-amber-100/60 px-1 py-0.5 rounded">
-                    NEXT_PUBLIC_SUPABASE_URL
-                  </code>{" "}
-                  and{" "}
-                  <code className="font-mono text-amber-950 font-bold bg-amber-100/60 px-1 py-0.5 rounded">
-                    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-                  </code>{" "}
-                  in <code className="font-mono text-amber-950 font-bold">frontend/.env.local</code>.
+            <div className="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="w-full">
+                <p className="font-semibold text-emerald-950">Local Exploration Mode Active</p>
+                <p className="mt-1 text-emerald-800 leading-relaxed">
+                  Supabase is optional. You can sign in with any email and password, or enter instantly using the demo access below.
                 </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSubmitting(true);
+                    await signIn("researcher@kneeai.local", "demo123");
+                    router.push("/dashboard");
+                  }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-xs font-semibold shadow-sm transition"
+                >
+                  Quick Demo Access <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
