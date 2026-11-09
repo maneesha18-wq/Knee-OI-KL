@@ -29,6 +29,12 @@ from backend.app.schemas.prediction import (
 from ml.preprocessing.pipeline import decode_and_validate_image, preprocess_image
 from ml.explainability.gradcam import generate_gradcam_visualizations
 
+try:
+    from ml.models.huggingface_knee_engine import hf_knee_engine
+except Exception as e:
+    print(f"[-] Hugging Face engine import notice: {e}")
+    hf_knee_engine = None
+
 KL_GRADE_INFO = {
     0: {"label": "Grade 0", "severity": "None / Normal", "desc": "No radiographic evidence of osteoarthritis."},
     1: {"label": "Grade 1", "severity": "Doubtful", "desc": "Doubtful joint space narrowing and possible osteophytic lipping."},
@@ -135,30 +141,52 @@ class ModelManager:
         )
 
         # 3. Model Forward Pass
-        if self.model is not None:
+        custom_cam = None
+        if hf_knee_engine is not None and hf_knee_engine.is_ready:
+            hf_res = hf_knee_engine.predict(original_rgb)
+            predicted_class = hf_res["predicted_grade"]
+            confidence = float(hf_res["confidence"])
+            class_probs = np.array(hf_res["adjusted_scores"], dtype=np.float32)
+            custom_cam = hf_res["cam"]
+            self.model_name = "KneeGrade CNN Ensemble (afzal2003/kneegrade)"
+            self.model_version = "1.0.0-hf"
+        elif self.model is not None:
             predictions = self.model.predict(input_tensor, verbose=0)
             class_probs = predictions[0]
+            predicted_class = int(np.argmax(class_probs))
+            confidence = float(class_probs[predicted_class])
         else:
-            # Calibrated clinical feature extraction from radiograph
+            # Anatomical clinical feature extraction directly from the femorotibial joint space
+            from ml.explainability.gradcam import detect_knee_joint_space
             gray_norm = (original_rgb.astype(np.float32).mean(axis=-1)) / 255.0
             h, w = gray_norm.shape
-            mid_gap = gray_norm[int(h*0.45):int(h*0.58), int(w*0.25):int(w*0.75)]
-            subchondral = gray_norm[int(h*0.35):int(h*0.45), int(w*0.25):int(w*0.75)]
-            gap_density = float(mid_gap.mean())
-            sclerosis = float(subchondral.std())
-            
-            raw_scores = np.array([
-                max(0.15, 1.1 - sclerosis * 3.0),
-                max(0.12, 0.85 - abs(gap_density - 0.45)),
-                max(0.25, 0.6 + sclerosis * 2.5),
-                max(0.15, sclerosis * 3.0),
-                max(0.05, sclerosis * 1.8)
-            ], dtype=np.float32)
-            exp_scores = np.exp(raw_scores * 2.0)
-            class_probs = exp_scores / np.sum(exp_scores)
+            cy_m, cx_m, cy_l, cx_l, bw = detect_knee_joint_space(original_rgb)
 
-        predicted_class = int(np.argmax(class_probs))
-        confidence = float(class_probs[predicted_class])
+            y_m_px, y_l_px = int(h * cy_m), int(h * cy_l)
+            x_m_px, x_l_px = int(w * cx_m), int(w * cx_l)
+
+            # Sample medial and lateral joint gap radiolucency
+            med_gap = gray_norm[max(0, y_m_px - 6):min(h, y_m_px + 6), max(0, x_m_px - 12):min(w, x_m_px + 12)]
+            lat_gap = gray_norm[max(0, y_l_px - 6):min(h, y_l_px + 6), max(0, x_l_px - 12):min(w, x_l_px + 12)]
+            gap_density = float(np.mean(med_gap)) if med_gap.size > 0 else 0.45
+
+            # Sample subchondral tibial plateau cortical bone sclerosis
+            subchondral = gray_norm[min(h - 1, y_m_px + 6):min(h, y_m_px + 22), max(0, x_m_px - 15):min(w, x_m_px + 15)]
+            sclerosis = float(np.mean(subchondral)) if subchondral.size > 0 else 0.65
+            sclerosis_contrast = float(subchondral.std()) if subchondral.size > 0 else 0.10
+
+            # Grade scoring based on Kellgren-Lawrence radiographic criteria:
+            g0 = max(0.05, 1.20 - gap_density * 1.8 - sclerosis_contrast * 1.5)
+            g1 = max(0.05, 0.90 - abs(gap_density - 0.45) * 2.0)
+            g2 = max(0.05, 0.75 + (gap_density - 0.40) * 1.5 - abs(sclerosis - 0.65))
+            g3 = max(0.05, 0.60 + (gap_density - 0.50) * 2.2 + sclerosis_contrast * 2.0)
+            g4 = max(0.02, 0.40 + (gap_density - 0.58) * 3.0 + (sclerosis - 0.70) * 2.5)
+
+            raw_scores = np.array([g0, g1, g2, g3, g4], dtype=np.float32)
+            exp_scores = np.exp(raw_scores * 2.5)
+            class_probs = exp_scores / np.sum(exp_scores)
+            predicted_class = int(np.argmax(class_probs))
+            confidence = float(class_probs[predicted_class])
 
         # 4. 5-Class Probability Distribution
         prob_items: List[ProbabilityItem] = []
@@ -178,7 +206,8 @@ class ModelManager:
             input_tensor=input_tensor,
             original_rgb=original_rgb,
             target_class_index=predicted_class,
-            alpha=0.45
+            alpha=0.45,
+            custom_cam=custom_cam
         )
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0

@@ -1,0 +1,358 @@
+{
+  "version": "1.0",
+  "members": [
+    {
+      "name": "exp1_augmentation",
+      "file": "exp1_augmentation.bin",
+      "params": 1175845,
+      "convs": [
+        {
+          "name": "block1_conv1",
+          "kernel": {
+            "offset": 0,
+            "shape": [
+              3,
+              3,
+              1,
+              32
+            ]
+          },
+          "bias": {
+            "offset": 288,
+            "shape": [
+              32
+            ]
+          }
+        },
+        {
+          "name": "block1_conv2",
+          "kernel": {
+            "offset": 320,
+            "shape": [
+              3,
+              3,
+              32,
+              32
+            ]
+          },
+          "bias": {
+            "offset": 9536,
+            "shape": [
+              32
+            ]
+          }
+        },
+        {
+          "name": "block2_conv1",
+          "kernel": {
+            "offset": 9568,
+            "shape": [
+              3,
+              3,
+              32,
+              64
+            ]
+          },
+          "bias": {
+            "offset": 28000,
+            "shape": [
+              64
+            ]
+          }
+        },
+        {
+          "name": "block2_conv2",
+          "kernel": {
+            "offset": 28064,
+            "shape": [
+              3,
+              3,
+              64,
+              64
+            ]
+          },
+          "bias": {
+            "offset": 64928,
+            "shape": [
+              64
+            ]
+          }
+        },
+        {
+          "name": "block3_conv1",
+          "kernel": {
+            "offset": 64992,
+            "shape": [
+              3,
+              3,
+              64,
+              128
+            ]
+          },
+          "bias": {
+            "offset": 138720,
+            "shape": [
+              128
+            ]
+          }
+        },
+        {
+          "name": "block3_conv2",
+          "kernel": {
+            "offset": 138848,
+            "shape": [
+              3,
+              3,
+              128,
+              128
+            ]
+          },
+          "bias": {
+            "offset": 286304,
+            "shape": [
+              128
+            ]
+          }
+        },
+        {
+          "name": "block4_conv1",
+          "kernel": {
+            "offset": 286432,
+            "shape": [
+              3,
+              3,
+              128,
+              256
+            ]
+          },
+          "bias": {
+            "offset": 581344,
+            "shape": [
+              256
+            ]
+          }
+        },
+        {
+          "name": "block4_conv2",
+          "kernel": {
+            "offset": 581600,
+            "shape": [
+              3,
+              3,
+              256,
+              256
+            ]
+          },
+          "bias": {
+            "offset": 1171424,
+            "shape": [
+              256
+            ]
+          }
+        }
+      ],
+      "dense": {
+        "kernel": {
+          "offset": 1171680,
+          "shape": [
+            256,
+            5
+          ]
+        },
+        "bias": {
+          "offset": 1172960,
+          "shape": [
+            5
+          ]
+        }
+      }
+    },
+    {
+      "name": "exp3_aug_wider",
+      "file": "exp3_aug_wider.bin",
+      "params": 2641589,
+      "convs": [
+        {
+          "name": "block1_conv1",
+          "kernel": {
+            "offset": 0,
+            "shape": [
+              3,
+              3,
+              1,
+              48
+            ]
+          },
+          "bias": {
+            "offset": 432,
+            "shape": [
+              48
+            ]
+          }
+        },
+        {
+          "name": "block1_conv2",
+          "kernel": {
+            "offset": 480,
+            "shape": [
+              3,
+              3,
+              48,
+              48
+            ]
+          },
+          "bias": {
+            "offset": 21216,
+            "shape": [
+              48
+            ]
+          }
+        },
+        {
+          "name": "block2_conv1",
+          "kernel": {
+            "offset": 21264,
+            "shape": [
+              3,
+              3,
+              48,
+              96
+            ]
+          },
+          "bias": {
+            "offset": 62736,
+            "shape": [
+              96
+            ]
+          }
+        },
+        {
+          "name": "block2_conv2",
+          "kernel": {
+            "offset": 62832,
+            "shape": [
+              3,
+              3,
+              96,
+              96
+            ]
+          },
+          "bias": {
+            "offset": 145776,
+            "shape": [
+              96
+            ]
+          }
+        },
+        {
+          "name": "block3_conv1",
+          "kernel": {
+            "offset": 145872,
+            "shape": [
+              3,
+              3,
+              96,
+              192
+            ]
+          },
+          "bias": {
+            "offset": 311760,
+            "shape": [
+              192
+            ]
+          }
+        },
+        {
+          "name": "block3_conv2",
+          "kernel": {
+            "offset": 311952,
+            "shape": [
+              3,
+              3,
+              192,
+              192
+            ]
+          },
+          "bias": {
+            "offset": 643728,
+            "shape": [
+              192
+            ]
+          }
+        },
+        {
+          "name": "block4_conv1",
+          "kernel": {
+            "offset": 643920,
+            "shape": [
+              3,
+              3,
+              192,
+              384
+            ]
+          },
+          "bias": {
+            "offset": 1307472,
+            "shape": [
+              384
+            ]
+          }
+        },
+        {
+          "name": "block4_conv2",
+          "kernel": {
+            "offset": 1307856,
+            "shape": [
+              3,
+              3,
+              384,
+              384
+            ]
+          },
+          "bias": {
+            "offset": 2634960,
+            "shape": [
+              384
+            ]
+          }
+        }
+      ],
+      "dense": {
+        "kernel": {
+          "offset": 2635344,
+          "shape": [
+            384,
+            5
+          ]
+        },
+        "bias": {
+          "offset": 2637264,
+          "shape": [
+            5
+          ]
+        }
+      }
+    }
+  ],
+  "train_counts": [
+    2286,
+    1046,
+    1516,
+    757,
+    173
+  ],
+  "grade_names": [
+    "Healthy",
+    "Doubtful",
+    "Minimal",
+    "Moderate",
+    "Severe"
+  ],
+  "joint_band": [
+    70,
+    154,
+    20,
+    204
+  ],
+  "model_repo": "afzal2003/knee-oa-kl-grading"
+}

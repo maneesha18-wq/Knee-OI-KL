@@ -218,7 +218,8 @@ def generate_gradcam_visualizations(
     original_rgb: np.ndarray,
     target_class_index: Optional[int] = None,
     alpha: float = 0.45,
-    colormap: int = cv2.COLORMAP_JET
+    colormap: int = cv2.COLORMAP_JET,
+    custom_cam: Optional[np.ndarray] = None
 ) -> Dict[str, Any]:
     """
     Generates high-contrast clinical explainability outputs matching publication standards:
@@ -228,7 +229,10 @@ def generate_gradcam_visualizations(
     (d) Articular Cartilage Mapping (Femorotibial Joint ROI with Medial/Lateral callouts and colorbar)
     (e) 4-Panel Composite Pipeline Image
     """
-    heatmap = compute_gradcam_heatmap(model, input_tensor, target_class_index, original_rgb=original_rgb)
+    if custom_cam is not None:
+        heatmap = custom_cam
+    else:
+        heatmap = compute_gradcam_heatmap(model, input_tensor, target_class_index, original_rgb=original_rgb)
 
     target_h, target_w = original_rgb.shape[:2]
     cy_med, cx_med, cy_lat, cx_lat, bone_w_ratio = detect_knee_joint_space(original_rgb)
