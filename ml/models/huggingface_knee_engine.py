@@ -126,39 +126,56 @@ class HuggingFaceKneeEngine:
             self.is_ready = True
             print(f"[+] HuggingFaceKneeEngine initialized successfully with {len(self.members)} models.")
 
+    def polarity_score(self, img_224: np.ndarray) -> float:
+        """
+        Center minus edge brightness. Negative means the X-ray is inverted.
+        Matches js/preprocess.js polarityScore().
+        """
+        center = img_224[40:184, 62:162]
+        left_edge = img_224[:, :20]
+        right_edge = img_224[:, -20:]
+        edges = np.concatenate([left_edge.ravel(), right_edge.ravel()])
+        return float(np.mean(center) - np.mean(edges))
+
+    def fix_polarity(self, img_224: np.ndarray) -> np.ndarray:
+        if self.polarity_score(img_224) < 0:
+            return 255 - img_224
+        return img_224
+
+    def stretch(self, img_224: np.ndarray) -> np.ndarray:
+        """
+        1st-99th percentile stretch measured strictly on the central 144x144 joint box.
+        Matches js/preprocess.js stretch().
+        """
+        center_144 = img_224[40:184, 40:184]
+        p_lo, p_hi = np.percentile(center_144, [1, 99])
+        if p_hi <= p_lo:
+            return img_224
+        stretched = np.clip((img_224.astype(np.float32) - p_lo) * (255.0 / (p_hi - p_lo)), 0, 255)
+        return stretched.astype(np.uint8)
+
     def preprocess_radiograph(self, image_input: np.ndarray) -> np.ndarray:
         """
-        Preprocesses knee radiograph:
-        1. Convert to grayscale 224x224
-        2. Inverted polarity correction
-        3. 1st-99th percentile contrast stretch measured on joint region
-        4. CLAHE (clip=2.0, tileGridSize=(8, 8))
+        Matches js/preprocess.js KneePreprocess.preprocess():
+        polarity fix -> 1st-99th percentile stretch on central joint region -> CLAHE (2.0, 8x8).
         """
         if len(image_input.shape) == 3 and image_input.shape[2] == 3:
             gray = cv2.cvtColor(image_input, cv2.COLOR_RGB2GRAY)
         else:
             gray = image_input
 
-        # Resize to 224x224
-        resized = cv2.resize(gray, (SIZE, SIZE), interpolation=cv2.INTER_AREA)
+        # Resize to 224x224 (cv2.INTER_AREA for downscale, INTER_LINEAR for upscale)
+        h, w = gray.shape[:2]
+        interp = cv2.INTER_AREA if (w >= SIZE and h >= SIZE) else cv2.INTER_LINEAR
+        resized = cv2.resize(gray, (SIZE, SIZE), interpolation=interp)
 
-        # Polarity check: bones should be brighter than soft tissue / air
-        # Center should be brighter than outer border
-        border = np.concatenate([resized[0, :], resized[-1, :], resized[:, 0], resized[:, -1]])
-        center = resized[int(SIZE*0.3):int(SIZE*0.7), int(SIZE*0.3):int(SIZE*0.7)]
-        if np.mean(center) < np.mean(border):
-            resized = 255 - resized
+        # 1. Polarity fix
+        fixed = self.fix_polarity(resized)
 
-        # 1st-99th percentile stretch on central joint band
-        r0, r1, c0, c1 = self.cfg.get("joint_band", [70, 154, 20, 204])
-        joint_roi = resized[r0:r1, c0:c1]
-        p_lo, p_hi = np.percentile(joint_roi, [1, 99])
-        if p_hi > p_lo:
-            stretched = np.clip((resized.astype(np.float32) - p_lo) * (255.0 / (p_hi - p_lo)), 0, 255).astype(np.uint8)
-        else:
-            stretched = resized
+        # 2. Central joint percentile stretch
+        stretched = self.stretch(fixed)
 
-        # CLAHE
+        # 3. OpenCV CLAHE (clipLimit 2.0, 8x8 tiles)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(stretched)
         return enhanced
